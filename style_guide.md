@@ -1,41 +1,35 @@
 This file is an addition to Google's Java Style Guide which you can view [here](https://google.github.io/styleguide/javaguide.html).
-All the text underneath are only the points in which the styling of this project differs from Google's Style Guide.
+This is split up into two parts: points from which this style guide differs from Google's and additions to Google's style guide.
 
+### Additions
+#### Variable declarations
+**Var usage: only when clear**
+
+Replacing the explicit type definition in a local variable declaration/initialisation may be replaced by the `var` word
+for type inference, only if it is clear from the initialisation what the actual type would be, even for someone who does
+not necessarily know the rest of the codebase. For example, this is a place where this is allowed:
+```java
+var text = "Hi"; //allowed, it's clear from the right-hand side that this is a String
+```
+However, this is a place where local type inference is _not_ allowed:
+```java
+var data = getData(); //disallowed, it's unclear what type data would be
+```
+Usage of local type inference is always a _may_, never a _must_. When in doubt whether local variable type inference
+would be acceptable, don't use it and resort to the explicit type name.
+
+### Differences 
 2.3.1 ([original](https://google.github.io/styleguide/javaguide.html#s2.3.1-whitespace-characters)):  
 Tab characters *may* be used for indentation.
 
 3 ([original](https://google.github.io/styleguide/javaguide.html#s3-source-file-structure)):  
-This project uses MIT license, therefor no license or copyright information at the top.
+This project uses MIT license, therefore no license or copyright information at the top.
 
 3.3.1 ([original](https://google.github.io/styleguide/javaguide.html#s3.3.1-wildcard-imports)):  
 Wildcard imports, static or otherwise, *may* be used.
 
 3.3.3 ([original](https://google.github.io/styleguide/javaguide.html#s3.3.3-import-ordering-and-spacing)):  
 The import statements do not have to be in ASCII sort order, but import statements starting with the same main package name should be grouped.
-
-4.1.1 ([original](https://google.github.io/styleguide/javaguide.html#s4.1.1-braces-always-used)):  
-Braces aren't used when they are optional. This is correct:
-```java
-if (statement)
-  method();
-```
-and so is this:
-```java
-for (statement)
-  if (statement)
-    method();
-```
-
-4.1.3 ([original](https://google.github.io/styleguide/javaguide.html#s4.1.3-braces-empty-blocks)):  
-An empty block is immediately opened and closed on the same line as the block construct. This is correct:
-```java
-void doNothing() {}
-```
-while this isn't:
-```java
-void doNothingElse() {
-}
-```
 
 4.2 ([original](https://google.github.io/styleguide/javaguide.html#s4.2-block-indentation)):  
 Indentation uses 4 spaces or one tab.
