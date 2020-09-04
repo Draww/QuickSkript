@@ -61,8 +61,9 @@ public class OptionalGroup implements SkriptPatternGroup {
             }
 
             if (groupLength == 0) {
-                patternResults.forEach(result ->
-                    result.addMatchedGroup(this, result.getMatchedString(), 0));
+                for (SkriptMatchResult result : patternResults) {
+                    result.addMatchedGroup(this, result.getMatchedString(), 0);
+                }
 
                 results.addAll(patternResults);
                 continue;
@@ -70,14 +71,14 @@ public class OptionalGroup implements SkriptPatternGroup {
 
             SkriptPatternGroup[] newArray = Arrays.copyOfRange(followingGroups, 1, groupLength);
 
-            patternResults.forEach(result -> {
+            for (SkriptMatchResult result : patternResults) {
                 List<SkriptMatchResult> calleeResults = followingGroups[0].match(newArray, result.getRestingString());
 
                 List<Pair<SkriptPatternGroup, String>> matchedGroups = new ArrayList<>(result.getMatchedGroups());
 
                 Collections.reverse(matchedGroups);
 
-                calleeResults.forEach(res -> {
+                for (SkriptMatchResult res : calleeResults) {
                     SkriptMatchResult copy = result.shallowCopy();
 
                     copy.addMatchedGroup(this, copy.getMatchedString(), 0);
@@ -87,8 +88,8 @@ public class OptionalGroup implements SkriptPatternGroup {
                     copy.addParseMark(res.getParseMark());
 
                     results.add(copy);
-                });
-            });
+                }
+            }
         }
 
         if (groupLength == 0) {
@@ -155,12 +156,12 @@ public class OptionalGroup implements SkriptPatternGroup {
      *         unsuccessful.
      */
     @Nullable
-    public static Pair<OptionalGroup, String> parseStarting(@NotNull String input) {
+    public static Pair<OptionalGroup, StringBuilder> parseStarting(@NotNull StringBuilder input) {
         if (input.charAt(0) != '[') {
             return null;
         }
 
-        input = input.substring(1);
+        input.deleteCharAt(0);
 
         int openingOptionals = 1;
         int openingChoices = 0;
@@ -226,6 +227,6 @@ public class OptionalGroup implements SkriptPatternGroup {
         int[] parseMarkArray = parseMarks.stream().mapToInt(x -> x).toArray();
         OptionalGroup optionalGroup = new OptionalGroup(patterns.toArray(new SkriptPattern[0]), parseMarkArray);
 
-        return new Pair<>(optionalGroup, input.substring(lastIndex + 1));
+        return new Pair<>(optionalGroup, input.delete(0, lastIndex + 1));
     }
 }

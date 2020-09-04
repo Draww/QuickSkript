@@ -12,9 +12,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /**
  * Returns the sum of a given collection of numbers
@@ -51,13 +51,18 @@ public class PsiSumFunction extends PsiElement<Double> {
     protected Double executeImpl(@Nullable Context context) {
         Object object = element.execute(context);
 
-        Stream<Object> stream = PsiCollection.toStreamStrict(object);
-        if (stream == null) {
+        double sum = 0;
+        Collection<Object> objects = PsiCollection.toCollection(object);
+
+        if (objects == null) {
             throw new ExecutionException("Element was not a collection or array", lineNumber);
         }
 
-        return stream.mapToDouble(e -> ((Number) e).doubleValue())
-                .sum();
+        for (Object obj : objects) {
+            sum += ((Number) obj).doubleValue();
+        }
+
+        return sum;
     }
 
     /**
@@ -84,7 +89,7 @@ public class PsiSumFunction extends PsiElement<Double> {
         @Nullable
         @Contract(pure = true)
         @Fallback
-        public PsiSumFunction tryParse(@NotNull String text, int lineNumber) {
+        public PsiSumFunction tryParse(@NotNull SkriptLoader skriptLoader, @NotNull String text, int lineNumber) {
             Matcher matcher = pattern.matcher(text);
 
             if (!matcher.matches()) {
@@ -94,7 +99,7 @@ public class PsiSumFunction extends PsiElement<Double> {
             String[] values = matcher.group("parameters").replace(" ", "").split(",");
 
             if (values.length == 1) {
-                PsiElement<?> collection = SkriptLoader.get().tryParseElement(values[0], lineNumber);
+                PsiElement<?> collection = skriptLoader.tryParseElement(values[0], lineNumber);
 
                 if (collection != null) {
                     return create(collection, lineNumber);
@@ -102,13 +107,13 @@ public class PsiSumFunction extends PsiElement<Double> {
             }
             
             return create(new PsiCollection<>(Arrays.stream(values)
-                .map(string -> SkriptLoader.get().forceParseElement(string, lineNumber)), lineNumber), lineNumber);
+                .map(string -> skriptLoader.forceParseElement(string, lineNumber)), lineNumber), lineNumber);
         }
 
         /**
          * Provides a default way for creating the specified object for this factory with the given parameters as
-         * constructor parameters. This should be overridden by impl, instead of the {@link #tryParse(String, int)}
-         * method.
+         * constructor parameters. This should be overridden by impl, instead of the
+         * {@link #tryParse(SkriptLoader, String, int)} method.
          *
          * @param elements the elements to compute
          * @param lineNumber the line number

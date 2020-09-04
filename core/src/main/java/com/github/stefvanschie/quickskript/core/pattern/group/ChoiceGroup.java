@@ -138,12 +138,12 @@ public class ChoiceGroup implements SkriptPatternGroup {
      *         unsuccessful.
      */
     @Nullable
-    public static Pair<ChoiceGroup, String> parseStarting(@NotNull String input) {
+    public static Pair<ChoiceGroup, StringBuilder> parseStarting(@NotNull StringBuilder input) {
         if (input.charAt(0) != '(') {
             return null;
         }
 
-        input = input.substring(1);
+        input.deleteCharAt(0);
 
         int openingOptionals = 0;
         int openingChoices = 1;
@@ -194,10 +194,16 @@ public class ChoiceGroup implements SkriptPatternGroup {
                 } else if (character == '\u00A6') { //broken bar character
                     String parseMarkString = input.substring(groupStartIndex, index);
 
-                    if (!parseMarkString.matches("-?\\d+")) { //TODO pre-compile pattern
-                        throw new SkriptPatternParseException(
-                            "Parse mark needs to be an integer, but '" + parseMarkString + "' does not adhere to this"
-                        );
+                    for (int i = 0; i < parseMarkString.length(); i++) {
+                        if (parseMarkString.charAt(i) == '-' && i == 0) {
+                            continue;
+                        }
+
+                        if (parseMarkString.charAt(i) < '0' || parseMarkString.charAt(i) > '9') {
+                            throw new SkriptPatternParseException(
+                                "Parse mark needs to be an integer, but '" + parseMarkString + "' does not adhere to this"
+                            );
+                        }
                     }
 
                     currentParseMark = Integer.parseInt(parseMarkString);
@@ -206,9 +212,14 @@ public class ChoiceGroup implements SkriptPatternGroup {
             }
         }
 
-        int[] parseMarkArray = parseMarks.stream().mapToInt(x -> x).toArray();
-        ChoiceGroup choiceGroup = new ChoiceGroup(patterns.toArray(new SkriptPattern[0]), parseMarkArray);
+        int[] parseMarkArray = new int[parseMarks.size()];
 
-        return new Pair<>(choiceGroup, input.substring(lastIndex + 1));
+        for (int i = 0; i < parseMarks.size(); i++) {
+            parseMarkArray[i] = parseMarks.get(i);
+        }
+
+        ChoiceGroup choiceGroup = new ChoiceGroup(patterns.toArray(SkriptPattern[]::new), parseMarkArray);
+
+        return new Pair<>(choiceGroup, input.delete(0, lastIndex + 1));
     }
 }

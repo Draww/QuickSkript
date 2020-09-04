@@ -86,7 +86,7 @@ public class LiteralGroup implements SkriptPatternGroup {
      *         unsuccessful.
      */
     @Nullable
-    public static Pair<LiteralGroup, String> parseStarting(@NotNull String input) {
+    public static Pair<LiteralGroup, StringBuilder> parseStarting(@NotNull StringBuilder input) {
         int index = 0;
         int escapesHit = 0;
         char previousChar = '\0';
@@ -117,11 +117,23 @@ public class LiteralGroup implements SkriptPatternGroup {
         }
 
         //remove escape characters
-        input = input.substring(0, index).replaceAll("\\\\([\\[\\]<>%()])", "$1") +
-            input.substring(index); //TODO pre-compile pattern
+        StringBuilder builder = new StringBuilder(input.substring(0, index));
+        int escapeIndex = builder.indexOf("\\");
 
-        LiteralGroup literalGroup = new LiteralGroup(input.substring(0, index - escapesHit));
+        while (escapeIndex != -1 && escapeIndex != builder.length() - 1) {
+            char escapedChar = builder.charAt(escapeIndex + 1);
 
-        return new Pair<>(literalGroup, input.substring(index - escapesHit));
+            if (escapedChar == '[' || escapedChar == ']' || escapedChar == '<' || escapedChar == '>' || escapedChar == '%' || escapedChar == '(' || escapedChar == ')') {
+                builder.deleteCharAt(escapeIndex);
+            }
+
+            escapeIndex = builder.indexOf("\\", escapeIndex + 1);
+        }
+
+        builder.append(input.substring(index));
+
+        LiteralGroup literalGroup = new LiteralGroup(builder.substring(0, index - escapesHit));
+
+        return new Pair<>(literalGroup, builder.delete(0, index - escapesHit));
     }
 }

@@ -2,7 +2,7 @@ package com.github.stefvanschie.quickskript.core.skript;
 
 import com.github.stefvanschie.quickskript.core.context.CommandContext;
 import com.github.stefvanschie.quickskript.core.context.EventContext;
-import com.github.stefvanschie.quickskript.core.file.SkriptFileSection;
+import com.github.stefvanschie.quickskript.core.file.skript.SkriptFileSection;
 import com.github.stefvanschie.quickskript.core.psi.condition.*;
 import com.github.stefvanschie.quickskript.core.psi.effect.*;
 import com.github.stefvanschie.quickskript.core.psi.exception.ParseException;
@@ -119,6 +119,15 @@ public class StandaloneSkriptLoader extends SkriptLoader {
         registerElement(new PsiInventoryTypeLiteral.Factory());
         registerElement(new PsiNumberLiteral.Factory());
         registerElement(new PsiPlayerLiteral.Factory());
+        registerElement(new PsiRegionLiteral.Factory());
+        registerElement(new PsiResourcePackStatus.Factory());
+        registerElement(new PsiSoundCategoryLiteral.Factory());
+        registerElement(new PsiSpawnReasonLiteral.Factory());
+        registerElement(new PsiStatusEffectTypeLiteral.Factory());
+        registerElement(new PsiTeleportCauseLiteral.Factory());
+        registerElement(new PsiTimeLiteral.Factory());
+        registerElement(new PsiTimePeriodLiteral.Factory());
+        registerElement(new PsiTimeSpanLiteral.Factory());
 
         //expressions
         registerElement(new PsiAlphabeticalSortExpression.Factory());
@@ -232,6 +241,11 @@ public class StandaloneSkriptLoader extends SkriptLoader {
 
         //this one is here, because it has special identifiers around it
         registerElement(new PsiStringLiteral.Factory());
+
+        //these are slow and match a lot, therefore at the bottom
+        registerElement(new PsiItemCategoryLiteral.Factory());
+        registerElement(new PsiItemLiteral.Factory());
+        registerElement(new PsiMoneyLiteral.Factory());
     }
 
     @Override
@@ -270,7 +284,7 @@ public class StandaloneSkriptLoader extends SkriptLoader {
             throw new ParseException("Unable to find a trigger for the command", section.getLineNumber());
         }
 
-        PsiBaseSection baseSection = new PsiBaseSection(skript, trigger, CommandContext.class);
+        PsiBaseSection baseSection = new PsiBaseSection(this, skript, trigger, CommandContext.class);
 
         commands.put(command, baseSection);
     }
@@ -280,7 +294,7 @@ public class StandaloneSkriptLoader extends SkriptLoader {
         String event = section.getText();
 
         if (registeredEvents.stream().anyMatch(pattern -> pattern.matcher(event).matches())) {
-            events.put(event, new PsiBaseSection(skript, section, EventContext.class));
+            events.put(event, new PsiBaseSection(this, skript, section, EventContext.class));
         }
     }
 }

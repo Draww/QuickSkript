@@ -1,0 +1,210 @@
+[hatch stage] = {uncracked, cracked, almost hatched}
+[egg count] = {(one|singular), (pair of|[pile of] two), (trio of|[pile of] three), [pile of] four}
+[beacon level] = {(level (0|zero)|unleveled), level (1|one), level (2|two), level (3|three),
+                  (level (4|four)|complete[d])}
+[firework duration] = {(0|zero|immediate), (1|one|short), (2|two|medium), (3|three|long)}
+[composter stage] = {(empty|unfilled|level 0), level 1, level 2, level 3, (half full|half empty|level 4), level 5,
+                     level 6, level 7, (filled|level 8)}
+[bamboo age] = {(thin|age 0), (thick|age 1)}
+[bamboo leaves] = {leafless, small leaved, large leaved}
+[bamboo stage] = {(stagnant|stage 0), (growing|stage 1)}
+[berry age] = {young, berryless, (some berries|berried), (many berries|very berried)}
+
+coal
+diamond[s]
+iron ingot[s] : any ingot[s]
+gold[en] ingot[s] : any ingot[s]
+gold[en] nugget[s] : any nugget[s]
+emerald[s]
+flint[s]
+
+shulker shell[s]
+iron nugget[s] : any nugget[s]
+
+charcoal
+sugar cane[s]
+conduit[s]
+[turtle [shell]] scute[s]
+kelp
+nautilus shell[s]
+heart[s] of the sea
+popped chorus fruit[s]
+nether brick item[s]
+
+{egg count} {hatch stage} turtle egg[s]
+{beacon level} beacon[s]
+
+stick[s]
+bowl[s]
+string[s]
+feather[s]
+gunpowder
+snowball[s]
+leather
+clay [ball[s]]
+[clay] brick [item[s]]
+(piece[s] of paper|paper[s])
+slime[ ]ball[s]
+egg[s]
+glowstone dust
+bone[s]
+sugar
+ender pearl[s]
+blaze rod[s]
+(ender eye[s]|eye[s] of ender)
+(bottle[s] o' enchanting|xp bottle[s]|experience bottle[s])
+fire charge[s]
+[empty] map
+filled map
+nether star[s]
+[nether] quartz
+prismarine shard[s]
+prismarine crystal[s]
+rabbit hide[s]
+enchanted book[s]
+
+nether wart [item[s]]
+
+book[s] : any book[s]
+(book and quill|writable book)[s] : book with text, any book[s]
+written book[s] : book with text, any book[s]
+book with text
+enchanted book
+
+[(flight|duration|flight duration)] {firework duration} firework [rocket[s]]
+
+pumpkin seed[s] : any seed[s]
+melon seed[s] : any seed[s]
+[wheat] seed[s] : any seed[s]
+beetroot seed[s]
+
+wheat [item[s]]
+chorus fruit[s]
+
+[empty] bucket[s] : any bucket
+water bucket[s] : any bucket
+lava bucket[s] : any bucket
+milk [bucket[s]] : any bucket
+
+tropical fish bucket[s] : any fish bucket, any bucket
+cod bucket[s] : any fish bucket, any bucket
+pufferfish bucket[s] : any fish bucket, any bucket
+salmon bucket[s] : any fish bucket, any bucket
+
+[music] (disc|record) 11 : [any] [music] (disc|record)
+[music] (disc|record) 13 : [any] [music] (disc|record)
+[music] (disc|record) blocks : [any] [music] (disc|record)
+[music] (disc|record) cat : [any] [music] (disc|record)
+[music] (disc|record) chirp : [any] [music] (disc|record)
+[music] (disc|record) far : [any] [music] (disc|record)
+[music] (disc|record) mall : [any] [music] (disc|record)
+[music] (disc|record) stal : [any] [music] (disc|record)
+[music] (disc|record) strad : [any] [music] (disc|record)
+[music] (disc|record) wait : [any] [music] (disc|record)
+[music] (disc|record) ward : [any] [music] (disc|record)
+
+purple dye[s] : [any] dye
+cyan dye[s] : [any] dye
+light gr(a|e)y dye[s] : [any] dye
+gr(a|e)y dye[s] : [any] dye
+pink dye[s] : [any] dye
+(lime|light green) dye[s] : [any] dye
+light blue dye[s] : [any] dye
+magenta dye[s] : [any] dye
+orange dye[s] : [any] dye
+
+black dye[s] : [any] dye
+brown dye[s] : [any] dye
+blue dye[s] : [any] dye
+white dye[s] : [any] dye
+red dye[s] : [any] dye
+green dye[s] : [any] dye
+yellow dye[s] : [any] dye
+
+bone[ ]meal[s]
+lapis [lazuli[s]]
+ink sac[s]
+cocoa bean[s]
+
+(bat [spawn] egg|spawn bat)[s] : [any] spawn egg[s]
+(blaze [spawn] egg|spawn blaze)[s] : [any] spawn egg[s]
+(cave spider [spawn] egg|spawn cave spider)[s] : [any] spawn egg[s]
+(chicken [spawn] egg|spawn chicken)[s] : [any] spawn egg[s]
+(cod [spawn] egg|spawn cod)[s] : [any] spawn egg[s]
+(cow [spawn] egg|spawn cow)[s] : [any] spawn egg[s]
+(creeper [spawn] egg|spawn creeper)[s] : [any] spawn egg[s]
+(dolphin [spawn] egg|spawn dolphin)[s] : [any] spawn egg[s]
+(donkey [spawn] egg|spawn donkey)[s] : [any] spawn egg[s]
+(drowned [spawn] egg|spawn drowned)[s] : [any] spawn egg[s]
+(elder guardian [spawn] egg|spawn elder guardian)[s] : [any] spawn egg[s]
+(enderman [spawn] egg|spawn enderman)[s] : [any] spawn egg[s]
+(endermite [spawn] egg|spawn endermite)[s] : [any] spawn egg[s]
+(evoker [spawn] egg|spawn evoker)[s] : [any] spawn egg[s]
+(ghast [spawn] egg|spawn ghast)[s] : [any] spawn egg[s]
+(guardian [spawn] egg|spawn guardian)[s] : [any] spawn egg[s]
+(horse [spawn] egg|spawn horse)[s] : [any] spawn egg[s]
+(husk [spawn] egg|spawn husk)[s] : [any] spawn egg[s]
+(llama [spawn] egg|spawn llama)[s] : [any] spawn egg[s]
+(magma cube [spawn] egg|spawn magma cube)[s] : [any] spawn egg[s]
+((mooshroom|mushroom cow) [spawn] egg|spawn (mooshroom|mushroom cow))[s] : [any] spawn egg[s]
+(mule [spawn] egg|spawn mule)[s] : [any] spawn egg[s]
+(ocelot [spawn] egg|spawn ocelot)[s] : [any] spawn egg[s]
+(parrot [spawn] egg|spawn parrot)[s] : [any] spawn egg[s]
+(phantom [spawn] egg|spawn phantom)[s] : [any] spawn egg[s]
+(pig [spawn] egg|spawn pig)[s] : [any] spawn egg[s]
+(polar bear [spawn] egg|spawn polar bear)[s] : [any] spawn egg[s]
+(pufferfish [spawn] egg|spawn pufferfish)[s] : [any] spawn egg[s]
+(rabbit [spawn] egg|spawn rabbit)[s] : [any] spawn egg[s]
+(salmon [spawn] egg|spawn salmon)[s] : [any] spawn egg[s]
+(sheep [spawn] egg|spawn sheep)[s] : [any] spawn egg[s]
+(shulker [spawn] egg|spawn shulker)[s] : [any] spawn egg[s]
+(silverfish [spawn] egg|spawn silverfish)[s] : [any] spawn egg[s]
+(skeleton [spawn] egg|spawn skeleton)[s] : [any] spawn egg[s]
+(skelet(on|al) horse [spawn] egg|spawn skelet(on|al) horse)[s] : [any] spawn egg[s]
+(slime [spawn] egg|spawn slime)[s] : [any] spawn egg[s]
+(spider [spawn] egg|spawn spider)[s] : [any] spawn egg[s]
+(squid [spawn] egg|spawn squid)[s] : [any] spawn egg[s]
+(stray [spawn] egg|spawn stray)[s] : [any] spawn egg[s]
+(tropical fish [spawn] egg|spawn tropical fish)[s] : [any] spawn egg[s]
+(turtle spawn egg|spawn turtle)[s] : [any] spawn egg[s]
+(vex [spawn] egg|spawn vex)[s] : [any] spawn egg[s]
+(villager [spawn] egg|spawn villager)[s] : [any] spawn egg[s]
+(vindicator [spawn] egg|spawn vindicator)[s] : [any] spawn egg[s]
+(witch [spawn] egg|spawn witches)[s] : [any] spawn egg[s]
+(wither skeleton [spawn] egg|spawn wither skeleton)[s] : [any] spawn egg[s]
+((wolf|dog) [spawn] egg|spawn (wolf|dog))[s] : [any] spawn egg[s]
+(zombie [spawn] egg|spawn zombie)[s] : [any] spawn egg[s]
+(zombie horse [spawn] egg|spawn zombie horse)[s] : [any] spawn egg[s]
+(zombie villager [spawn] egg|spawn zombie villager)[s] : [any] spawn egg[s]
+
+(pillager [spawn] egg|spawn pillager)[s] : [any] spawn egg[s]
+(ravager [spawn] egg|spawn ravager)[s] : [any] spawn egg[s]
+(wandering trader [spawn] egg|spawn wandering trader)[s] : [any] spawn egg[s]
+(trader llama [spawn] egg|spawn trader llama)[s] : [any] spawn egg[s]
+(cat [spawn] egg|spawn cat)[s] : [any] spawn egg[s]
+(fox [spawn] egg|spawn fox)[s] : [any] spawn egg[s]
+(panda [spawn] egg|spawn panda)[s] : [any] spawn egg[s]
+
+(bee [spawn] egg|spawn bee)[s] : [any] spawn egg[s]
+{composter stage} composter[s]
+{bamboo age} {bamboo leaves} {bamboo stage} bamboo [plant]
+{berry age} sweet berry bush [plant]
+
+flower charge banner pattern[s] : [any] banner pattern[s]
+creeper charge banner pattern[s] : [any] banner pattern[s]
+skull charge banner pattern[s] : [any] banner pattern[s]
+(mojang|thing) banner pattern[s] : [any] banner pattern[s]
+globe banner pattern[s] : [any] banner pattern[s]
+
+honeycomb[s]
+
+netherite ingot[s]
+netherite scrap[s]
+(hoglin [spawn] egg|spawn hoglin)[s] : [any] spawn egg[s]
+((zombified piglin|zombie pigman) [spawn] egg|spawn (zombified piglin|zombie pigman))[s] : [any] spawn egg[s]
+zoglin [spawn] egg|spawn zoglin)[s] : [any] spawn egg[s]
+(strider [spawn] egg|spawn strider)[s] : [any] spawn egg[s]
+
+[music] (disc|record) pigstep : [any] [music] (disc|record)
+
+(snout|piglin) banner pattern[s] : [any] banner pattern[s]

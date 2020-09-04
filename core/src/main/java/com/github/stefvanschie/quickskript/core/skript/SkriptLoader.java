@@ -1,6 +1,6 @@
 package com.github.stefvanschie.quickskript.core.skript;
 
-import com.github.stefvanschie.quickskript.core.file.SkriptFileSection;
+import com.github.stefvanschie.quickskript.core.file.skript.SkriptFileSection;
 import com.github.stefvanschie.quickskript.core.pattern.SkriptMatchResult;
 import com.github.stefvanschie.quickskript.core.pattern.SkriptPattern;
 import com.github.stefvanschie.quickskript.core.pattern.group.SkriptPatternGroup;
@@ -14,10 +14,8 @@ import com.github.stefvanschie.quickskript.core.psi.util.parsing.pattern.Pattern
 import com.github.stefvanschie.quickskript.core.psi.util.parsing.pattern.PatternTypeOrder;
 import com.github.stefvanschie.quickskript.core.psi.util.parsing.pattern.PatternTypeOrderHolder;
 import com.github.stefvanschie.quickskript.core.psi.util.parsing.pattern.exception.ParsingAnnotationInvalidValueException;
-import com.github.stefvanschie.quickskript.core.util.registry.BiomeRegistry;
+import com.github.stefvanschie.quickskript.core.util.registry.*;
 import com.github.stefvanschie.quickskript.core.util.Pair;
-import com.github.stefvanschie.quickskript.core.util.registry.EntityTypeRegistry;
-import com.github.stefvanschie.quickskript.core.util.registry.InventoryTypeRegistry;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,9 +25,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Instances of this class contain everything necessary for loading Skript files.
@@ -40,31 +37,20 @@ import java.util.stream.Stream;
  *
  * @since 0.1.0
  */
-public abstract class SkriptLoader implements Closeable {
-
-    /**
-     * The current loader instance or null if there is none present.
-     */
-    @Nullable
-    private static SkriptLoader instance;
-
-    /**
-     * Gets the current loader instance. Returns null if there is none present.
-     *
-     * @return the current instance
-     * @since 0.1.0
-     */
-    @Contract(pure = true)
-    public static SkriptLoader get() {
-        return instance;
-    }
-
+public abstract class SkriptLoader {
 
     /**
      * A list of all psi element factories.
      */
     @NotNull
     private final List<PsiElementFactory> elements = new ArrayList<>();
+
+    /**
+     * A cache for a factory and a list of methods with their patterns. This is gradually built up for element factories
+     * that are being tested and can be used in the future to avoid having to do lookups.
+     */
+    @NotNull
+    private final Map<PsiElementFactory, Map<Method, SkriptPattern[]>> elementsCached = new HashMap<>();
 
     /**
      * A list of all psi section factories.
@@ -81,20 +67,27 @@ public abstract class SkriptLoader implements Closeable {
     /**
      * A biome registry for working with biomes
      */
-    @NotNull
-    private final BiomeRegistry biomeRegistry = new BiomeRegistry();
+    private BiomeRegistry biomeRegistry;
 
     /**
      * An entity type registry for working with entity types
      */
-    @NotNull
-    private final EntityTypeRegistry entityTypeRegistry = new EntityTypeRegistry();
+    private EntityTypeRegistry entityTypeRegistry;
 
     /**
      * An inventory type registry for working with inventory types
      */
-    @NotNull
-    private final InventoryTypeRegistry inventoryTypeRegistry = new InventoryTypeRegistry();
+    private InventoryTypeRegistry inventoryTypeRegistry;
+
+    /**
+     * An item type registry for working with item types
+     */
+    private ItemTypeRegistry itemTypeRegistry;
+
+    /**
+     * A region registry for working with regions
+     */
+    private RegionRegistry regionRegistry;
 
     /**
      * Create a new instance, initializing it with all default (non-addon) data.
@@ -102,16 +95,19 @@ public abstract class SkriptLoader implements Closeable {
      * @since 0.1.0
      */
     protected SkriptLoader() {
-        if (instance != null) {
-            throw new IllegalStateException("A SkriptLoader is already present, can't create another one.");
-        }
+        CompletableFuture.allOf(CompletableFuture.runAsync(() -> {
+            biomeRegistry = new BiomeRegistry();
+            entityTypeRegistry = new EntityTypeRegistry();
+            inventoryTypeRegistry = new InventoryTypeRegistry();
+            regionRegistry = new RegionRegistry();
 
-        registerDefaultElements();
-        registerDefaultSections();
-        registerDefaultConverters();
-        registerDefaultEvents();
-
-        instance = this;
+            registerDefaultElements();
+            registerDefaultSections();
+            registerDefaultConverters();
+            registerDefaultEvents();
+        }), CompletableFuture.runAsync(() ->
+            itemTypeRegistry = new ItemTypeRegistry()
+        )).join();
     }
 
 
@@ -130,14 +126,19 @@ public abstract class SkriptLoader implements Closeable {
         input = input.trim();
 
         for (PsiElementFactory factory : elements) {
-            for (Method method : factory.getClass().getMethods()) {
-                Pattern pattern = method.getAnnotation(Pattern.class);
+            Map<Method, SkriptPattern[]> methods = elementsCached.get(factory);
 
-                if (pattern == null) {
-                    continue;
-                }
+            if (methods == null) {
+                methods = new HashMap<>();
+                List<Method> newMethods = new ArrayList<>(Arrays.asList(factory.getClass().getMethods()));
 
-                try {
+                for (Method method : newMethods) {
+                    Pattern pattern = method.getAnnotation(Pattern.class);
+
+                    if (pattern == null) {
+                        continue;
+                    }
+
                     Class<?> searching = factory.getClass();
                     Field field = null;
 
@@ -150,7 +151,7 @@ public abstract class SkriptLoader implements Closeable {
                     } while (searching != null);
 
                     if (field == null) {
-                        continue;
+                        throw new IllegalStateException("Unable to find field '" + pattern.value() + "' associated with Pattern annotation");
                     }
 
                     field.setAccessible(true);
@@ -159,41 +160,68 @@ public abstract class SkriptLoader implements Closeable {
 
                     SkriptPattern[] skriptPatterns;
 
-                    if (type == SkriptPattern.class) {
-                        skriptPatterns = new SkriptPattern[] {
-                            (SkriptPattern) field.get(factory)
-                        };
-                    } else if (type == SkriptPattern[].class) {
-                        skriptPatterns = (SkriptPattern[]) field.get(factory);
-                    } else {
+                    try {
+                        if (type == SkriptPattern.class) {
+                            skriptPatterns = new SkriptPattern[]{
+                                (SkriptPattern) field.get(factory)
+                            };
+                        } else if (type == SkriptPattern[].class) {
+                            skriptPatterns = (SkriptPattern[]) field.get(factory);
+                        } else {
+                            continue;
+                        }
+                    } catch (IllegalAccessException exception) {
+                        exception.printStackTrace();
                         continue;
                     }
 
+                    methods.put(method, skriptPatterns);
+                }
+
+                elementsCached.put(factory, methods);
+            }
+
+            for (Map.Entry<Method, SkriptPattern[]> entry : methods.entrySet()) {
+                Method method = entry.getKey();
+                SkriptPattern[] skriptPatterns = entry.getValue();
+
+                try {
                     for (int skriptPatternIndex = 0; skriptPatternIndex < skriptPatterns.length; skriptPatternIndex++) {
                         PatternTypeOrderHolder holder = method.getAnnotation(PatternTypeOrderHolder.class);
                         PatternTypeOrder patternTypeOrder = null;
 
                         if (holder != null) {
-                            final int finalSkriptPatternIndex = skriptPatternIndex;
+                            int amount = 0;
+                            PatternTypeOrder order = null;
 
-                            Stream<PatternTypeOrder> patternMetadataStream = Arrays.stream(holder.value())
-                                .filter(pm -> Arrays.stream(pm.patterns())
-                                    .anyMatch(patternIndex -> patternIndex == finalSkriptPatternIndex));
+                            for (PatternTypeOrder typeOrder : holder.value()) {
+                                for (int patternIndex : typeOrder.patterns()) {
+                                    if (patternIndex != skriptPatternIndex) {
+                                        continue;
+                                    }
 
-                            if (patternMetadataStream.count() > 1) {
+                                    amount++;
+                                    order = typeOrder;
+                                }
+                            }
+
+                            if (amount > 1) {
                                 throw new ParsingAnnotationInvalidValueException(
                                     "Multiple PatternMetadata on the same method specify the same pattern"
                                 );
                             }
 
-                            patternTypeOrder = patternMetadataStream.findAny().orElse(null);
+                            patternTypeOrder = order;
                         }
 
                         SkriptPattern skriptPattern = skriptPatterns[skriptPatternIndex];
+                        int typeGroupAmount = 0;
 
-                        int typeGroupAmount = (int) skriptPattern.getGroups().stream()
-                            .filter(group -> group instanceof TypeGroup)
-                            .count();
+                        for (SkriptPatternGroup group : skriptPattern.getGroups()) {
+                            if (group instanceof TypeGroup) {
+                                typeGroupAmount++;
+                            }
+                        }
 
                         if (method.getParameterCount() < typeGroupAmount + 1) {
                             throw new IllegalStateException("Method '" + method.getName() + "' has "
@@ -209,24 +237,36 @@ public abstract class SkriptLoader implements Closeable {
 
                             Collection<Pair<SkriptPatternGroup, String>> matchedGroups = result.getMatchedGroups();
 
-                            List<TypeGroup> groups = matchedGroups.stream()
-                                .map(Pair::getX)
-                                .filter(group -> group instanceof TypeGroup)
-                                .map(group -> (TypeGroup) group)
-                                .collect(Collectors.toUnmodifiableList());
+                            List<TypeGroup> groups = new ArrayList<>();
 
-                            List<String> matchedTypeTexts = matchedGroups.stream()
-                                .filter(entry -> entry.getX() instanceof TypeGroup)
-                                .map(Pair::getY)
-                                .collect(Collectors.toUnmodifiableList());
+                            for (Pair<SkriptPatternGroup, String> matchedGroup : matchedGroups) {
+                                SkriptPatternGroup group = matchedGroup.getX();
+
+                                if (group instanceof TypeGroup) {
+                                    groups.add((TypeGroup) group);
+                                }
+                            }
+
+                            List<String> matchedTypeTexts = new ArrayList<>();
+
+                            for (Pair<SkriptPatternGroup, String> matchedGroup : matchedGroups) {
+                                if (matchedGroup.getX() instanceof TypeGroup) {
+                                    matchedTypeTexts.add(matchedGroup.getY());
+                                }
+                            }
 
                             Object[] elements = new Object[typeGroupAmount];
 
                             for (int i = 0; i < elements.length && i < groups.size(); i++) {
-                                int elementIndex = skriptPattern.getGroups().stream()
-                                    .filter(group -> group instanceof TypeGroup)
-                                    .collect(Collectors.toUnmodifiableList())
-                                    .indexOf(groups.get(i));
+                                List<TypeGroup> typeGroups = new ArrayList<>();
+
+                                for (SkriptPatternGroup group : skriptPattern.getGroups()) {
+                                    if (group instanceof TypeGroup) {
+                                        typeGroups.add((TypeGroup) group);
+                                    }
+                                }
+
+                                int elementIndex = typeGroups.indexOf(groups.get(i));
 
                                 if (patternTypeOrder != null && !Arrays.equals(patternTypeOrder.typeOrder(), new int[]{})) {
                                     elementIndex = patternTypeOrder.typeOrder()[i];
@@ -254,24 +294,26 @@ public abstract class SkriptLoader implements Closeable {
 
                             method.setAccessible(true);
 
-                            Object[] parameters;
+                            Class<?>[] parameterTypes = method.getParameterTypes();
+                            List<Object> parameters = new ArrayList<>(Arrays.asList(elements));
 
+                            //allow an optional SkriptLoader in front
+                            if (parameterTypes[parameters.size() - elements.length] == SkriptLoader.class) {
+                                parameters.add(parameters.size() - elements.length, this);
+                            }
                             //allow an optional SkriptMatchResult in front
-                            if (method.getParameterTypes()[0] == SkriptMatchResult.class) {
-                                parameters = new Object[elements.length + 2];
-
-                                parameters[0] = result;
-
-                                System.arraycopy(elements, 0, parameters, 1, parameters.length - 2);
-                            } else {
-                                parameters = new Object[elements.length + 1];
-
-                                System.arraycopy(elements, 0, parameters, 0, parameters.length - 1);
+                            if (parameterTypes[parameters.size() - elements.length] == SkriptMatchResult.class) {
+                                parameters.add(parameters.size() - elements.length, result);
                             }
 
-                            parameters[parameters.length - 1] = lineNumber;
+                            parameters.add(lineNumber);
 
-                            PsiElement<?> element = (PsiElement<?>) method.invoke(factory, parameters);
+                            Object[] parameterArray = parameters.toArray(Object[]::new);
+                            PsiElement<?> element = (PsiElement<?>) method.invoke(factory, parameterArray);
+
+                            if (element == null) {
+                                continue;
+                            }
 
                             for (Object child : elements) {
                                 if (child instanceof PsiElement<?>) {
@@ -287,11 +329,15 @@ public abstract class SkriptLoader implements Closeable {
                 }
             }
 
-            Set<Method> methods = Arrays.stream(factory.getClass().getMethods())
-                .filter(method -> method.getAnnotation(Fallback.class) != null)
-                .collect(Collectors.toUnmodifiableSet());
+            Set<Method> fallbackMethods = new HashSet<>();
 
-            int size = methods.size();
+            for (Method method : factory.getClass().getMethods()) {
+                if (method.getAnnotation(Fallback.class) != null) {
+                    fallbackMethods.add(method);
+                }
+            }
+
+            int size = fallbackMethods.size();
 
             if (size > 1) {
                 throw new IllegalFallbackAnnotationAmountException(
@@ -301,9 +347,18 @@ public abstract class SkriptLoader implements Closeable {
 
             if (size == 1) {
                 //will only loop once
-                for (Method method : methods) {
+                for (Method method : fallbackMethods) {
                     try {
-                        Object result = method.invoke(factory, input, lineNumber);
+                        List<Object> parameters = new ArrayList<>();
+
+                        if (method.getParameterTypes()[0] == SkriptLoader.class) {
+                            parameters.add(this);
+                        }
+
+                        parameters.add(input);
+                        parameters.add(lineNumber);
+
+                        Object result = method.invoke(factory, parameters.toArray(Object[]::new));
 
                         if (result != null) {
                             return (PsiElement<?>) result;
@@ -355,7 +410,7 @@ public abstract class SkriptLoader implements Closeable {
     public PsiSection forceParseSection(@NotNull String input,
                                         @NotNull Supplier<PsiElement<?>[]> elementsSupplier, int lineNumber) {
         for (PsiSectionFactory<?> factory : sections) {
-            PsiSection result = factory.tryParse(input, elementsSupplier, lineNumber);
+            PsiSection result = factory.tryParse(this, input, elementsSupplier, lineNumber);
 
             if (result != null) {
                 return result;
@@ -437,21 +492,6 @@ public abstract class SkriptLoader implements Closeable {
     }
 
     /**
-     * Deletes the current loader instance.
-     * Normally should only be called if you are the one who created it.
-     *
-     * @since 0.1.0
-     */
-    @Override
-    public void close() {
-        if (instance == null) {
-            throw new IllegalStateException("No SkriptLoader is present, can't close it.");
-        }
-
-        instance = null;
-    }
-
-    /**
      * Gets the biome registry attached to this skript loader
      *
      * @return the biome registry
@@ -485,6 +525,30 @@ public abstract class SkriptLoader implements Closeable {
     @Contract(pure = true)
     public InventoryTypeRegistry getInventoryTypeRegistry() {
         return inventoryTypeRegistry;
+    }
+
+    /**
+     * Gets the item type registry attached to this skript loader
+     *
+     * @return the item type registry
+     * @since 0.1.0
+     */
+    @NotNull
+    @Contract(pure = true)
+    public ItemTypeRegistry getItemTypeRegistry() {
+        return itemTypeRegistry;
+    }
+
+    /**
+     * Gets the region registry attached to this skript loader
+     *
+     * @return the region registry
+     * @since 0.1.0
+     */
+    @NotNull
+    @Contract(pure = true)
+    public RegionRegistry getRegionRegistry() {
+        return regionRegistry;
     }
 
     /**

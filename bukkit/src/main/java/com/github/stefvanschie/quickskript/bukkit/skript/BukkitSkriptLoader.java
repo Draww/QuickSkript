@@ -1,6 +1,8 @@
 package com.github.stefvanschie.quickskript.bukkit.skript;
 
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent;
+import com.github.stefvanschie.quickskript.bukkit.integration.region.RegionIntegration;
+import com.github.stefvanschie.quickskript.bukkit.integration.region.WorldGuardIntegration;
 import com.github.stefvanschie.quickskript.bukkit.plugin.QuickSkript;
 import com.github.stefvanschie.quickskript.bukkit.event.ComplexEventProxyFactory;
 import com.github.stefvanschie.quickskript.bukkit.event.EventProxyFactory;
@@ -11,15 +13,16 @@ import com.github.stefvanschie.quickskript.bukkit.psi.expression.*;
 import com.github.stefvanschie.quickskript.bukkit.psi.function.PsiLocationFunctionImpl;
 import com.github.stefvanschie.quickskript.bukkit.psi.function.PsiVectorFunctionImpl;
 import com.github.stefvanschie.quickskript.bukkit.psi.function.PsiWorldFunctionImpl;
+import com.github.stefvanschie.quickskript.bukkit.psi.literal.PsiMoneyLiteralImpl;
 import com.github.stefvanschie.quickskript.bukkit.psi.literal.PsiPlayerLiteralImpl;
 import com.github.stefvanschie.quickskript.bukkit.skript.util.ExecutionTarget;
 import com.github.stefvanschie.quickskript.bukkit.util.CommandMapWrapper;
 import com.github.stefvanschie.quickskript.bukkit.util.Platform;
 import com.github.stefvanschie.quickskript.bukkit.util.event.ExperienceOrbSpawnEvent;
 import com.github.stefvanschie.quickskript.bukkit.util.event.QuickSkriptPostEnableEvent;
-import com.github.stefvanschie.quickskript.core.file.SkriptFileLine;
-import com.github.stefvanschie.quickskript.core.file.SkriptFileNode;
-import com.github.stefvanschie.quickskript.core.file.SkriptFileSection;
+import com.github.stefvanschie.quickskript.core.file.skript.SkriptFileLine;
+import com.github.stefvanschie.quickskript.core.file.skript.SkriptFileNode;
+import com.github.stefvanschie.quickskript.core.file.skript.SkriptFileSection;
 import com.github.stefvanschie.quickskript.core.psi.PsiElementFactory;
 import com.github.stefvanschie.quickskript.core.psi.condition.*;
 import com.github.stefvanschie.quickskript.core.psi.effect.PsiChangeEffect;
@@ -84,6 +87,19 @@ public class BukkitSkriptLoader extends SkriptLoader {
      */
     @NotNull
     private final CommandMapWrapper commandMapWrapper = new CommandMapWrapper();
+
+    /**
+     * Creates a new Bukkit skript loader.
+     *
+     * @since 0.1.0
+     */
+    public BukkitSkriptLoader() {
+        RegionIntegration regionIntegration = QuickSkript.getInstance().getRegionIntegration();
+
+        if (regionIntegration != null) {
+            getRegionRegistry().addRegions(regionIntegration.getRegions());
+        }
+    }
 
     @Override
     public void registerDefaultElements() {
@@ -162,6 +178,15 @@ public class BukkitSkriptLoader extends SkriptLoader {
         registerElement(new PsiInventoryTypeLiteral.Factory());
         registerElement(new PsiNumberLiteral.Factory());
         registerElement(new PsiPlayerLiteralImpl.Factory());
+        registerElement(new PsiRegionLiteral.Factory());
+        registerElement(new PsiResourcePackStatus.Factory());
+        registerElement(new PsiSoundCategoryLiteral.Factory());
+        registerElement(new PsiSpawnReasonLiteral.Factory());
+        registerElement(new PsiStatusEffectTypeLiteral.Factory());
+        registerElement(new PsiTeleportCauseLiteral.Factory());
+        registerElement(new PsiTimeLiteral.Factory());
+        registerElement(new PsiTimePeriodLiteral.Factory());
+        registerElement(new PsiTimeSpanLiteral.Factory());
 
         //expressions
         registerElement(new PsiAlphabeticalSortExpression.Factory());
@@ -275,6 +300,11 @@ public class BukkitSkriptLoader extends SkriptLoader {
 
         //this one is here, because it has special identifiers around it
         registerElement(new PsiStringLiteral.Factory());
+
+        //these are slow and match a lot, therefore at the bottom
+        registerElement(new PsiItemCategoryLiteral.Factory());
+        registerElement(new PsiItemLiteral.Factory());
+        registerElement(new PsiMoneyLiteralImpl.Factory());
     }
 
     @Override
@@ -533,7 +563,7 @@ public class BukkitSkriptLoader extends SkriptLoader {
             return;
         }
 
-        command.setExecutor(new SkriptCommandExecutor(skript, trigger, target));
+        command.setExecutor(new SkriptCommandExecutor(this, skript, trigger, target));
 
         commandMapWrapper.register(command);
     }
@@ -545,7 +575,7 @@ public class BukkitSkriptLoader extends SkriptLoader {
         input = input.trim();
 
         for (EventProxyFactory factory : events) {
-            if (factory.tryRegister(input, () -> new SkriptEventExecutor(skript, section))) {
+            if (factory.tryRegister(input, () -> new SkriptEventExecutor(this, skript, section))) {
                 return;
             }
         }

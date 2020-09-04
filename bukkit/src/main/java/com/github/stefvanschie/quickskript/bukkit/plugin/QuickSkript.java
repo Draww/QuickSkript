@@ -1,10 +1,14 @@
 package com.github.stefvanschie.quickskript.bukkit.plugin;
 
+import com.github.stefvanschie.quickskript.bukkit.integration.money.VaultIntegration;
+import com.github.stefvanschie.quickskript.bukkit.integration.region.RegionIntegration;
+import com.github.stefvanschie.quickskript.bukkit.integration.region.WorldGuardIntegration;
 import com.github.stefvanschie.quickskript.bukkit.skript.BukkitSkriptLoader;
 import com.github.stefvanschie.quickskript.bukkit.util.event.ExperienceOrbSpawnEvent;
 import com.github.stefvanschie.quickskript.bukkit.util.event.QuickSkriptPostEnableEvent;
-import com.github.stefvanschie.quickskript.core.file.FileSkript;
+import com.github.stefvanschie.quickskript.core.file.skript.FileSkript;
 import com.github.stefvanschie.quickskript.core.psi.exception.ParseException;
+import com.github.stefvanschie.quickskript.core.skript.SkriptLoader;
 import com.github.stefvanschie.quickskript.core.skript.profiler.BasicSkriptProfiler;
 import com.github.stefvanschie.quickskript.core.skript.profiler.NoOpSkriptProfiler;
 import com.github.stefvanschie.quickskript.core.skript.profiler.SkriptProfiler;
@@ -13,6 +17,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +37,16 @@ public class QuickSkript extends JavaPlugin {
      * The current instance of this plugin or null if the plugin is not enabled.
      */
     private static QuickSkript instance;
+
+    /**
+     * Integration with vault
+     */
+    private VaultIntegration vault;
+
+    /**
+     * Integration with world guard
+     */
+    private RegionIntegration regions;
 
     public static void main(String[] args) {
         new QuickSkript().onEnable(); //fake entry point for code analyzers
@@ -61,13 +77,27 @@ public class QuickSkript extends JavaPlugin {
         //load custom events
         pluginManager.registerEvents(new ExperienceOrbSpawnEvent.Listener(), this);
 
+        if (pluginManager.isPluginEnabled("Vault")) {
+            vault = new VaultIntegration();
+
+            if (!vault.isEnabled()) {
+                vault = null;
+            }
+        }
+
+        regions = new RegionIntegration();
+
+        if (!regions.hasRegionIntegration()) {
+            regions = null;
+        }
+
+        printIntegrations();
+
         var skriptLoader = new BukkitSkriptLoader();
-        loadScripts();
+        loadScripts(skriptLoader);
 
         if (getConfig().getBoolean("enable-execute-command")) {
-            ExecuteCommand.register();
-        } else {
-            skriptLoader.close();
+            ExecuteCommand.register(skriptLoader);
         }
 
         pluginManager.callEvent(new QuickSkriptPostEnableEvent());
@@ -76,9 +106,6 @@ public class QuickSkript extends JavaPlugin {
     @Override
     public void onDisable() {
         instance = null;
-
-        var skriptLoader = BukkitSkriptLoader.get();
-        if (skriptLoader != null) skriptLoader.close();
     }
 
     private void setProfilerImplementation() {
@@ -98,7 +125,13 @@ public class QuickSkript extends JavaPlugin {
         }
     }
 
-    private void loadScripts() {
+    /**
+     * Loads all available scripts
+     *
+     * @param skriptLoader the skript loader to parse with
+     * @since 0.1.0
+     */
+    private void loadScripts(@NotNull SkriptLoader skriptLoader) {
         File skriptFolder = new File(getDataFolder(), "skripts");
         if (!skriptFolder.exists() && !skriptFolder.mkdirs()) {
             getLogger().severe("Unable to create skripts folder.");
@@ -122,11 +155,50 @@ public class QuickSkript extends JavaPlugin {
 
         for (FileSkript skript : skripts) {
             try {
-                skript.registerCommands();
-                skript.registerEventExecutors();
+                skript.registerCommands(skriptLoader);
+                skript.registerEventExecutors(skriptLoader);
             } catch (ParseException e) {
                 getLogger().log(Level.SEVERE, "Error while parsing:" + e.getExtraInfo(skript), e);
             }
         }
+    }
+
+    /**
+     * Prints the status of integrations with the plugin.
+     *
+     * @since 0.1.0
+     */
+    private void printIntegrations() {
+        if (vault == null) {
+            getLogger().warning("Vault has not been detected, certain functionality may be unavailable");
+        }
+
+        if (regions == null) {
+            getLogger().warning("No region plugin has been detected, certain functionality may be unavailable");
+        }
+    }
+
+    /**
+     * Gets the integration with vault. This is null if vault is not available.
+     *
+     * @return vault integration or null if vault doesn't exist
+     * @since 0.1.0
+     */
+    @Nullable
+    @Contract(pure = true)
+    public VaultIntegration getVaultIntegration() {
+        return vault;
+    }
+
+    /**
+     * Gets the integration with region plugins. This is null if no region plugin is available.
+     *
+     * @return region integration or null if no region plugin exists
+     * @since 0.1.0
+     */
+    @Nullable
+    @Contract(pure = true)
+    public RegionIntegration getRegionIntegration() {
+        return regions;
     }
 }

@@ -1,6 +1,6 @@
 package com.github.stefvanschie.quickskript.core.psi;
 
-import com.github.stefvanschie.quickskript.core.file.FileSkript;
+import com.github.stefvanschie.quickskript.core.file.skript.FileSkript;
 import com.github.stefvanschie.quickskript.core.skript.SkriptLoader;
 import com.github.stefvanschie.quickskript.core.skript.StandaloneSkriptLoader;
 import org.jetbrains.annotations.NotNull;
@@ -20,10 +20,13 @@ import java.util.stream.Collectors;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestClassBase {
 
+    protected SkriptLoader skriptLoader;
+
     @NotNull
     private static Collection<File> getSampleSkriptFiles() {
         URL resource = TestClassBase.class.getClassLoader().getResource("sample-skript-files");
         File directory = new File(Objects.requireNonNull(resource).getPath());
+
         return Arrays.asList(Objects.requireNonNull(directory.listFiles()));
     }
 
@@ -42,11 +45,6 @@ public class TestClassBase {
 
     @BeforeAll
     void initialize() {
-        new StandaloneSkriptLoader();
-    }
-
-    @AfterAll
-    void deinitialize() {
-        SkriptLoader.get().close();
+        skriptLoader = new StandaloneSkriptLoader();
     }
 }

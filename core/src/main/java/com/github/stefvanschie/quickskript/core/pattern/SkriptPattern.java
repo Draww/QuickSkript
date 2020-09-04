@@ -23,17 +23,10 @@ public class SkriptPattern {
     private final List<SkriptPatternGroup> groups;
 
     /**
-     * True if {@link TypeGroup} and {@link RegexGroup} should match as much as possible, false if they should match as
-     * little as possible. In both cases, a valid match has priority over this option: the groups mentioned will not
-     * match something if that means the match will become impossible, even though a match is possible if they'd capture
-     * more.
-     */
-    private boolean greedy = true;
-
-    /**
      * A set with functions that can parse groups
      */
-    private static final Set<Function<String, Pair<? extends SkriptPatternGroup, String>>> GROUP_PARSERS = Set.of(
+    private static final Set<Function<StringBuilder, Pair<? extends SkriptPatternGroup, StringBuilder>>>
+        GROUP_PARSERS = Set.of(
         ChoiceGroup::parseStarting,
         LiteralGroup::parseStarting,
         OptionalGroup::parseStarting,
@@ -61,11 +54,12 @@ public class SkriptPattern {
      */
     @NotNull
     public static SkriptPattern parse(@NotNull String input) {
+        StringBuilder text = new StringBuilder(input);
         List<SkriptPatternGroup> groups = new ArrayList<>();
 
-        while (!input.isEmpty()) {
-            for (Function<String, Pair<? extends SkriptPatternGroup, String>> parser : GROUP_PARSERS) {
-                Pair<? extends SkriptPatternGroup, String> pair = parser.apply(input);
+        while (text.length() > 0) {
+            for (Function<StringBuilder, Pair<? extends SkriptPatternGroup, StringBuilder>> parser : GROUP_PARSERS) {
+                Pair<? extends SkriptPatternGroup, StringBuilder> pair = parser.apply(text);
 
                 if (pair == null) {
                     continue;
@@ -73,7 +67,7 @@ public class SkriptPattern {
 
                 groups.add(pair.getX());
 
-                input = pair.getY();
+                text = pair.getY();
                 break;
             }
         }
@@ -96,6 +90,17 @@ public class SkriptPattern {
     public List<SkriptMatchResult> match(@NotNull String input) {
         if (groups.isEmpty()) {
             return new ArrayList<>(0);
+        }
+
+        //exit early if matching will absolutely fail
+        for (SkriptPatternGroup group : groups) {
+            if (!(group instanceof LiteralGroup)) {
+                continue;
+            }
+
+            if (!input.contains(((LiteralGroup) group).getText())) {
+                return new ArrayList<>(0);
+            }
         }
 
         return groups.get(0).match(groups.subList(1, groups.size()).toArray(SkriptPatternGroup[]::new), input);
@@ -131,21 +136,5 @@ public class SkriptPattern {
         return groups.stream()
             .flatMap(group -> Stream.concat(Stream.of(group), group.getChildren().stream()))
             .collect(Collectors.toUnmodifiableList());
-    }
-
-    /**
-     * Changes whether this pattern should be greedy or not.
-     *
-     * @param greedy true if this should be greedy, false if not
-     * @return this pattern
-     * @see #greedy
-     * @since 0.1.0
-     */
-    @NotNull
-    @Contract(pure = true)
-    public SkriptPattern greedy(boolean greedy) {
-        this.greedy = greedy;
-
-        return this;
     }
 }

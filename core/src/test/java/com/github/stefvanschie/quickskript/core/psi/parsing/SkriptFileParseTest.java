@@ -1,8 +1,8 @@
 package com.github.stefvanschie.quickskript.core.psi.parsing;
 
-import com.github.stefvanschie.quickskript.core.file.FileSkript;
-import com.github.stefvanschie.quickskript.core.file.SkriptFileLine;
-import com.github.stefvanschie.quickskript.core.file.SkriptFileNode;
+import com.github.stefvanschie.quickskript.core.file.skript.FileSkript;
+import com.github.stefvanschie.quickskript.core.file.skript.SkriptFileLine;
+import com.github.stefvanschie.quickskript.core.file.skript.SkriptFileNode;
 import com.github.stefvanschie.quickskript.core.psi.TestClassBase;
 import com.github.stefvanschie.quickskript.core.psi.exception.ParseException;
 import org.junit.jupiter.api.Assertions;
@@ -21,8 +21,8 @@ class SkriptFileParseTest extends TestClassBase {
     void test() {
         for (FileSkript skript : getSampleSkripts()) {
             try {
-                skript.registerCommands();
-                skript.registerEventExecutors();
+                skript.registerCommands(skriptLoader);
+                skript.registerEventExecutors(skriptLoader);
                 System.out.println("Successfully parsed: " + skript.getName());
             } catch (ParseException e) {
                 throw new AssertionError("Error while parsing:" + e.getExtraInfo(skript), e);

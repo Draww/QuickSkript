@@ -28,7 +28,7 @@ public class SpaceGroup implements SkriptPatternGroup {
         int groupLength = followingGroups.length;
 
         if (groupLength >= 1 && followingGroups[0] instanceof OptionalGroup) {
-            if (input.startsWith(" ")) {
+            if (input.length() > 0 && input.charAt(0) == ' ') {
                 String subInput = input.substring(" ".length());
                 SkriptPatternGroup[] firstRemovedArray = Arrays.copyOfRange(followingGroups, 1, groupLength);
                 List<SkriptMatchResult> calleeResults = followingGroups[0].match(firstRemovedArray, subInput);
@@ -85,9 +85,9 @@ public class SpaceGroup implements SkriptPatternGroup {
      * @since 0.1.0
      */
     @Nullable
-    public static Pair<SpaceGroup, String> parseStarting(@NotNull String input) {
+    public static Pair<SpaceGroup, StringBuilder> parseStarting(@NotNull StringBuilder input) {
         if (input.charAt(0) == ' ') {
-            return new Pair<>(new SpaceGroup(), input.substring(1));
+            return new Pair<>(new SpaceGroup(), input.deleteCharAt(0));
         }
 
         return null;
